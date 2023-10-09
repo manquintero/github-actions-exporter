@@ -17,15 +17,15 @@ import (
 // getFieldValue return value from run element which corresponds to field
 func getFieldValue(repo string, run github.WorkflowRun, field string) string {
 	// DEBUG
-	var runJson []byte
-	if runJson, err = json.Marshal(run); err != nil {
-		log.Fatalln("trouble converting github.WorkflowRun type into string:", err)
-	}
-	runJsonCompact := &bytes.Buffer{}
-	if err = json.Compact(runJsonCompact, runJson); err != nil {
-		log.Fatalln("trouble compacting jsonSrc", err)
-	}
-	log.Print("repo=", repo, ";", "field=", field, "runJson=", runJsonCompact.String())
+	//var runJson []byte
+	//if runJson, err = json.Marshal(run); err != nil {
+	//	log.Fatalln("trouble converting github.WorkflowRun type into string:", err)
+	//}
+	//runJsonCompact := &bytes.Buffer{}
+	//if err = json.Compact(runJsonCompact, runJson); err != nil {
+	//	log.Fatalln("trouble compacting jsonSrc", err)
+	//}
+	//log.Print("repo=", repo, ";", "field=", field, "runJson=", runJsonCompact.String())
 	// /DEBUG
 	switch field {
 	case "repo":
@@ -35,7 +35,11 @@ func getFieldValue(repo string, run github.WorkflowRun, field string) string {
 	case "node_id":
 		return *run.NodeID
 	case "head_branch":
-		return *run.HeadBranch
+		headBranch := run.HeadBranch
+		if headBranch == nil {
+			return "<empty>"
+		}
+		return *headBranch
 	case "head_sha":
 		return *run.HeadSHA
 	case "run_number":
@@ -66,15 +70,13 @@ func getFieldValue(repo string, run github.WorkflowRun, field string) string {
 func getRelevantFields(repo string, run *github.WorkflowRun) []string {
 	relevantFields := strings.Split(config.WorkflowFields, ",")
 	// DEBUG
-	log.Print("relevantFields=", relevantFields)
-	// /DEBUG
+	//log.Print("relevantFields=", relevantFields)
 	result := make([]string, len(relevantFields))
 	for i, field := range relevantFields {
 		result[i] = getFieldValue(repo, *run, field)
 	}
 	// DEBUG
-	log.Print("result=", result)
-	// /DEBUG
+	//log.Print("result=", result)
 	return result
 }
 
