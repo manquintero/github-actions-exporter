@@ -22,9 +22,9 @@ jobs:
 
       - name: Build
         env:
-          VERSION: ${{ steps.get-version.outputs.version }}
+          LD_FLAGS: -X 'main.version=${{ steps.get-version.outputs.version }}'
         run: |
-          CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-X "main.version=$VERSION" -o github-actions-exporter
+          CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="$LD_FLAGS" -o github-actions-exporter
 
       - name: Create Release
         id: create_release
