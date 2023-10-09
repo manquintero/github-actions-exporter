@@ -21,13 +21,16 @@ jobs:
           echo "version=${GITHUB_REF/refs\/tags\//}" | tee -a "$GITHUB_OUTPUT"
 
       - name: Build
-        run: CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-X 'main.version=${{ steps.get-version.outputs.version }}'" -o github-actions-exporter
+        env:
+          VERSION: ${{ steps.get-version.outputs.version }}
+        run: |
+          CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-X "main.version=$VERSION" -o github-actions-exporter
 
       - name: Create Release
         id: create_release
         uses: actions/create-release@8d93430eddafb926c668181c71f579556f68668c # commit SHA for v1.0.0
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
@@ -38,7 +41,7 @@ jobs:
         id: upload-release-asset 
         uses: actions/upload-release-asset@64e5e85fc528f162d7ba7ce2d15a3bb67efb3d80 # commit SHA for v1.0.1
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
           asset_path: github-actions-exporter
