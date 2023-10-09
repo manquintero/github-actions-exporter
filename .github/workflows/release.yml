@@ -2,30 +2,30 @@ name: Release
 
 on:
   push:
-    # Sequence of patterns matched against refs/tags
     tags:
-    - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+    - 'v*' # Run on push to a "v" tag, e.g. v0.0.1, v1.0.0, etc.
 
 jobs:
-  build:
-    name: Upload Release Asset
+  build-and-release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
-      - uses: actions/setup-go@v2
-        with:
-          go-version: '1.16'
+      - uses: actions/checkout@v4
 
-      - name: Get the version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      - uses: actions/setup-go@v4
+        with:
+          go-version: 1.18
+
+      - name: Get release version
+        id: get-version
+        run: |
+          echo "version=${GITHUB_REF/refs\/tags\//}" | tee -a "$GITHUB_OUTPUT"
 
       - name: Build
-        run: CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-X 'main.version=${{ steps.get_version.outputs.VERSION }}'" -o github-actions-exporter
+        run: CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-X 'main.version=${{ steps.get-version.outputs.version }}'" -o github-actions-exporter
 
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1.0.0
+        uses: actions/create-release@8d93430eddafb926c668181c71f579556f68668c # commit SHA for v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
@@ -33,9 +33,10 @@ jobs:
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
+
       - name: Upload Release Asset
         id: upload-release-asset 
-        uses: actions/upload-release-asset@v1.0.1
+        uses: actions/upload-release-asset@64e5e85fc528f162d7ba7ce2d15a3bb67efb3d80 # commit SHA for v1.0.1
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
