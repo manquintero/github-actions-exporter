@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-    - 'v*' # Run on push to a "v" tag, e.g. v0.0.1, v1.0.0, etc.
+    - 'v*' # Run on push of a "v*" tag, e.g. v0.0.1, v1.0.0, etc.
 
 jobs:
   build-and-release:
@@ -13,21 +13,25 @@ jobs:
 
       - uses: actions/setup-go@v4
         with:
-          go-version: 1.18
+          go-version: 1.21
 
-      - name: Get release version
+      - name: Generate release version
         id: get-version
         run: |
-          echo "version=${GITHUB_REF/refs\/tags\//}" | tee -a "$GITHUB_OUTPUT"
+          echo "it=${GITHUB_REF/refs\/tags\//}" | tee -a "$GITHUB_OUTPUT"
 
       - name: Build
         env:
-          LD_FLAGS: -X 'main.version=${{ steps.get-version.outputs.version }}'
+          VERSION: ${{ steps.get-version.outputs.it }}
+          BIN_OUT: github-actions-exporter
         run: |
-          CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="$LD_FLAGS" -o github-actions-exporter
+          make build
 
-      - name: Create Release
-        id: create_release
+      ### !!!
+      # TODO these `actions/*` are deprecated and no longer maintained; migrate to something else...
+      ### !!!
+      - name: Create release
+        id: create-release
         uses: actions/create-release@8d93430eddafb926c668181c71f579556f68668c # commit SHA for v1.0.0
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -37,13 +41,12 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Asset
-        id: upload-release-asset 
+      - name: Upload release asset
         uses: actions/upload-release-asset@64e5e85fc528f162d7ba7ce2d15a3bb67efb3d80 # commit SHA for v1.0.1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          upload_url: ${{ steps.create-release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
           asset_path: github-actions-exporter
           asset_name: github-actions-exporter
           asset_content_type: application/binary
