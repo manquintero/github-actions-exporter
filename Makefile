@@ -1,5 +1,9 @@
 CGO_ENABLED?=0
 GOOS?=linux # dawin for macos
+GOOS=$(shell uname -s | tr '[:upper:]' '[:lower:]')
+ifneq ($(GOOS),darwin)
+	GOOS=linux
+endif
 GOARCH?=amd64
 BIN_OUT?=bin/app
 
