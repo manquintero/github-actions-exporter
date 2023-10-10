@@ -14,28 +14,23 @@ import (
 	"github.com/google/go-github/v45/github"
 )
 
-var debug = false
-
 // getFieldValue return value from run element which corresponds to field
 func getFieldValue(repo string, run github.WorkflowRun, field string) string {
-	if debug {
-		var runJson []byte
-		if runJson, err = json.Marshal(run); err != nil {
-			log.Fatalln("trouble converting github.WorkflowRun type into string:", err)
-		}
-		runJsonCompact := &bytes.Buffer{}
-		if err = json.Compact(runJsonCompact, runJson); err != nil {
-			log.Fatalln("trouble compacting jsonSrc", err)
-		}
-		log.Print("repo=", repo, ";", "field=", field, "runJson=", runJsonCompact.String())
-	}
 	switch field {
 	case "repo":
 		return repo
 	case "id":
-		return strconv.FormatInt(*run.ID, 10)
+		runId := run.ID
+		if runId == nil {
+			return "0"
+		}
+		return strconv.FormatInt(*runId, 10)
 	case "node_id":
-		return *run.NodeID
+		nodeId := run.NodeID
+		if nodeId == nil {
+			return "<empty>"
+		}
+		return *nodeId
 	case "head_branch":
 		headBranch := run.HeadBranch
 		if headBranch == nil {
@@ -43,31 +38,58 @@ func getFieldValue(repo string, run github.WorkflowRun, field string) string {
 		}
 		return *headBranch
 	case "head_sha":
-		return *run.HeadSHA
+		headSha := run.HeadSHA
+		if headSha == nil {
+			return "<empty>"
+		}
+		return *headSha
 	case "run_number":
-		return strconv.Itoa(*run.RunNumber)
+		runNumber := run.RunNumber
+		if runNumber == nil {
+			return "0"
+		}
+		return strconv.Itoa(*runNumber)
 	case "workflow_id":
-		return strconv.FormatInt(*run.WorkflowID, 10)
+		workflowId := run.WorkflowID
+		if workflowId == nil {
+			return "0"
+		}
+		return strconv.FormatInt(*workflowId, 10)
 	case "workflow":
 		r, exist := workflows[repo]
 		if !exist {
 			log.Printf("Couldn't fetch repo '%s' from workflow cache.", repo)
 			return "unknown"
 		}
-		w, exist := r[*run.WorkflowID]
+		workflowId := run.WorkflowID
+		if workflowId == nil {
+			log.Printf("Couldn't fetch workflow for repo '%s' from workflow cache because WorkflowID was missing from the passed in run object.", repo)
+			return "unknown"
+		}
+		w, exist := r[*workflowId]
 		if !exist {
-			log.Printf("Couldn't fetch repo '%s', workflow '%d' from workflow cache.", repo, *run.WorkflowID)
+			log.Printf("Couldn't fetch repo '%s', workflow '%d' from workflow cache.", repo, *workflowId)
 			return "unknown"
 		}
 		return *w.Name
 	case "event":
-		return *run.Event
+		runEvent := run.Event
+		if runEvent == nil {
+			return "<empty>"
+		}
+		return *runEvent
 	case "status":
-		return *run.Status
+		runStatus := run.Status
+		if runStatus == nil {
+			return "<empty>"
+		}
+		return *runStatus
 	}
 	log.Printf("Tried to fetch invalid field '%s'", field)
 	return ""
 }
+
+var debug = false
 
 func getRelevantFields(repo string, run *github.WorkflowRun) []string {
 	relevantFields := strings.Split(config.WorkflowFields, ",")
@@ -77,6 +99,18 @@ func getRelevantFields(repo string, run *github.WorkflowRun) []string {
 	result := make([]string, len(relevantFields))
 	for i, field := range relevantFields {
 		result[i] = getFieldValue(repo, *run, field)
+		if debug {
+			var err error
+			var runBytes []byte
+			if runBytes, err = json.Marshal(*run); err != nil {
+				log.Fatalln("failed to json.Marshal() the github.WorkflowRun type into string:", err)
+			}
+			bytesCompact := &bytes.Buffer{}
+			if err = json.Compact(bytesCompact, runBytes); err != nil {
+				log.Fatalln("failed to json.Compact() the github.WorkflowRun string:", err)
+			}
+			log.Print("repo=", repo, ";", "field=", field, ";", "runJson=", bytesCompact.String())
+		}
 	}
 	if debug {
 		log.Print("result=", result)
