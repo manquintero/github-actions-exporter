@@ -11,21 +11,12 @@ github-actions-exporter for prometheus
 
 Container image : https://hub.docker.com/repository/docker/spendeskplatform/github-actions-exporter
 
-Helm Chart :
-```
- helm chart repo: https://Spendesk.github.io/github-actions-exporter/
- chart: github-actions-exporter
- version: "0.1.4"
-```
-
 ## Information
 If you want to monitor a public repository, you must put the public_repo option in the repo scope of your github token or Github App Authentication.
 
 ## Authentication 
 
-Authentication can either via a Github Token or the Github App Authentication 3 parameters. When installing via the Helm Chart the authentication is provided via a secret.
-
-
+Authentication can either via a Github Token or the Github App Authentication 3 parameters.
 
 ## Options
 | Name | Flag | Env vars | Default | Description |
