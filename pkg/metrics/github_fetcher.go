@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/go-github/v45/github"
 
-	"github.com/spendesk/github-actions-exporter/pkg/config"
+	"github.com/faubion-hbo/github-actions-exporter/pkg/config"
 )
 
 var (
