@@ -1,0 +1,25 @@
+name: pull-request
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+
+      - name: Lint
+        run: make lint
+
+      - name: Static analysis
+        run: make vet
+
+      - name: Build
+        env:
+          VERSION: ${{ steps.get-version.outputs.it }}
+        run: make build
