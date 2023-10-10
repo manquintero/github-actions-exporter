@@ -1,3 +1,11 @@
+## NEW
+
+# build output directory
+bin/
+
+
+## ORIGINAL
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
