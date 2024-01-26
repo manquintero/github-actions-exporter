@@ -101,7 +101,6 @@ func periodicGithubFetcher() {
 		ww := make(map[string]map[int64]github.Workflow)
 		for _, repo := range repos_to_fetch {
 			r := strings.Split(repo, "/")
-
 			workflows_for_repo := getAllWorkflowsForRepo(r[0], r[1])
 			if len(workflows_for_repo) == 0 {
 				continue
