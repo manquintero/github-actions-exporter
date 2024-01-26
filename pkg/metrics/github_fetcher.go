@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/go-github/v45/github"
 
-	"github.com/faubion-hbo/github-actions-exporter/pkg/config"
+	"github.com/manquintero/github-actions-exporter/pkg/config"
 )
 
 var (
@@ -21,7 +21,7 @@ func getAllReposForOrg(orga string) []string {
 
 	opt := &github.RepositoryListByOrgOptions{
 		ListOptions: github.ListOptions{
-			PerPage: 200,
+			PerPage: 100,
 			Page:    0,
 		},
 	}
@@ -36,6 +36,10 @@ func getAllReposForOrg(orga string) []string {
 			break
 		}
 		for _, repo := range repos_page {
+			if *repo.Disabled || *repo.Archived {
+				log.Printf("Skipping Archived or Disabled repo %s", *repo.FullName)
+				continue
+			}
 			all_repos = append(all_repos, *repo.FullName)
 		}
 		if resp.NextPage == 0 {
@@ -50,7 +54,7 @@ func getAllWorkflowsForRepo(owner string, repo string) map[int64]github.Workflow
 	res := make(map[int64]github.Workflow)
 
 	opt := &github.ListOptions{
-		PerPage: 200,
+		PerPage: 100,
 		Page:    0,
 	}
 
@@ -85,6 +89,8 @@ func periodicGithubFetcher() {
 			repos_to_fetch = config.Github.Repositories.Value()
 		} else {
 			for _, orga := range config.Github.Organizations.Value() {
+				// FIXME: This limit is being hit, every time we restart the
+				// cycle we query over and over this needs a separate cadence
 				repos_to_fetch = append(repos_to_fetch, getAllReposForOrg(orga)...)
 			}
 		}
@@ -95,6 +101,8 @@ func periodicGithubFetcher() {
 		ww := make(map[string]map[int64]github.Workflow)
 		for _, repo := range repos_to_fetch {
 			r := strings.Split(repo, "/")
+
+			// FIME: check if the repo is archived
 			workflows_for_repo := getAllWorkflowsForRepo(r[0], r[1])
 			if len(workflows_for_repo) == 0 {
 				continue
@@ -106,6 +114,6 @@ func periodicGithubFetcher() {
 		repositories = non_empty_repos
 		workflows = ww
 
-		time.Sleep(time.Duration(config.Github.Refresh) * 5 * time.Second)
+		// time.Sleep(time.Duration(config.Github.Refresh) * 5 * time.Second)
 	}
 }
