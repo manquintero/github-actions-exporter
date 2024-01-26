@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/go-github/v45/github"
 
-	"github.com/manquintero/github-actions-exporter/pkg/config"
+	"github.com/faubion-hbo/github-actions-exporter/pkg/config"
 )
 
 var (
@@ -114,6 +114,6 @@ func periodicGithubFetcher() {
 		repositories = non_empty_repos
 		workflows = ww
 
-		// time.Sleep(time.Duration(config.Github.Refresh) * 5 * time.Second)
+		time.Sleep(time.Duration(config.Github.Refresh) * 5 * time.Second)
 	}
 }

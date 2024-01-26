@@ -10,7 +10,7 @@ github-actions-exporter for prometheus
 ![Docker Pulls](https://img.shields.io/docker/pulls/spendeskplatform/github-actions-exporter)
 -->
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/manquintero/github-actions-exporter)](https://goreportcard.com/report/github.com/manquintero/github-actions-exporter)
+[![Go Report Card](https://goreportcard.com/badge/github.com/faubion-hbo/github-actions-exporter)](https://goreportcard.com/report/github.com/faubion-hbo/github-actions-exporter)
 
 <!--
 Container image : https://hub.docker.com/repository/docker/spendeskplatform/github-actions-exporter

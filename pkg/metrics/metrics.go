@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/manquintero/github-actions-exporter/pkg/config"
+	"github.com/faubion-hbo/github-actions-exporter/pkg/config"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/die-net/lrucache"
@@ -61,11 +61,11 @@ func InitMetrics() {
 		}
 	}
 
-	// go getBillableFromGithub()
-	// go getRunnersFromGithub()
-	// go getRunnersOrganizationFromGithub()
+	go getBillableFromGithub()
+	go getRunnersFromGithub()
+	go getRunnersOrganizationFromGithub()
 	go getWorkflowRunsFromGithub()
-	// go getRunnersEnterpriseFromGithub()
+	go getRunnersEnterpriseFromGithub()
 }
 
 // NewClient creates a Github Client
