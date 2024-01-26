@@ -19,7 +19,7 @@ Container image : https://hub.docker.com/repository/docker/spendeskplatform/gith
 ## Information
 If you want to monitor a public repository, you must put the public_repo option in the repo scope of your github token or Github App Authentication.
 
-## Authentication
+## Authentication 
 
 Authentication can either via a Github Token or the Github App Authentication 3 parameters.
 
@@ -223,23 +223,23 @@ admin:org
 
 ### Authentication Errors
 
-#### Invalid Github Token
- if token is invalid then `401 Bad credentials` will be returned on github API error and displayed in an error message.
+#### Invalid Github Token 
+ if token is invalid then `401 Bad credentials` will be returned on github API error and displayed in an error message. 
 
-#### Invalid Github App configuration
+#### Invalid Github App configuration 
  if the app id or app installation id value is incorrect then messages like the following are displayed:
  ```
  could not refresh installation id 12345678's token: request &{Method:POST URL:https://api.github.com/app/installations/12345678/access_tokens
- ```
+ ``` 
 
- if the github_app_private_key is incorrect then errors like the following are displayed.
+ if the github_app_private_key is incorrect then errors like the following are displayed. 
  ```
   Error: Client creation failed.authentication failed: could not parse private key: Invalid Key: Key must be PEM encoded PKCS1 or PKCS8 private ke
  ```
 
-###  Secret actions-exporter
+###  Secret actions-exporter 
 
-In the kubernetes deployment authentication is passed via a kubernetes secret:
+In the kubernetes deployment authentication is passed via a kubernetes secret: 
 
 ```
 kind: Secret
@@ -255,7 +255,7 @@ data:
 #  github_app_private_key: DDDDDDD
 ```
 
-Or more probably using an external secret manager. Here is an example of using External Secrets with the EKS Secret Manager to define the authentication in a secret:
+Or more probably using an external secret manager. Here is an example of using External Secrets with the EKS Secret Manager to define the authentication in a secret: 
 
 ```
 apiVersion: 'kubernetes-client.io/v1'
