@@ -1,0 +1,53 @@
+---
+name: release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_call:
+
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # commit SHA for tag v4.1.1
+        with:
+          fetch-tags: true
+
+      - name: Get the next version
+        id: version
+        uses: mathieudutour/github-tag-action@fcfbdceb3093f6d85a3b194740f8c6cec632f4e2 # commit SHA for tag v6.1
+        with:
+          github_token: ${{ github.token }}
+          dry_run: true
+
+      - name: Create GitHub release
+        run: |
+          GENERATE_NOTES_ARGS=(--generate-notes)
+          if [[ $PREVIOUS_TAG != "" && $PREVIOUS_TAG != "v0.0.0" ]]; then
+            GENERATE_NOTES_ARGS+=(--notes-start-tag $PREVIOUS_TAG)
+          fi
+
+          gh release create "$NEW_TAG" \
+            "${GENERATE_NOTES_ARGS[@]}" \
+            --target "${{ github.sha }}"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEW_TAG: ${{ steps.version.outputs.new_tag }}
+          PREVIOUS_TAG: ${{ steps.version.outputs.previous_tag }}
+
+      - name: Update major tag
+        run: |
+          # Get major from new version
+          MAJOR=$(echo $NEW_VERSION | cut -d'.' -f1)
+          # Overwrite local tag and force push
+          git tag --force "v${MAJOR}" "${{ github.sha }}"
+          git push origin --force --tags
+        env:
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
