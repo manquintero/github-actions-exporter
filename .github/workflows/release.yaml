@@ -5,8 +5,10 @@ on:
   push:
     branches:
       - main
-  workflow_call:
-
+    paths-ignore:
+      - '.github/**'
+      - '**.md'
+  workflow_dispatch:
 
 permissions:
   contents: write
