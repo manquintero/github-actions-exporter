@@ -28,8 +28,7 @@ func countAllReposForOrg(orga string) int {
 			log.Printf("Get error for %s: %s", orga, err.Error())
 			break
 		}
-		repo_count := *organization.PublicRepos + *organization.TotalPrivateRepos
-		return repo_count
+		return *organization.PublicRepos + *organization.TotalPrivateRepos + *organization.OwnedPrivateRepos
 	}
 	return -1
 }
@@ -111,6 +110,7 @@ func periodicGithubFetcher() {
 			for _, orga := range config.Github.Organizations.Value() {
 				c, exist := repos_per_org[orga]
 				currentCount := countAllReposForOrg(orga)
+				log.Printf("getAllReposForOrg %d", currentCount)
 				if !exist || c != currentCount {
 					repos_to_fetch = append(repos_to_fetch, getAllReposForOrg(orga)...)
 				} else {
