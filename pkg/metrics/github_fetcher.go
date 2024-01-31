@@ -12,9 +12,26 @@ import (
 )
 
 var (
-	repositories []string
-	workflows    map[string]map[int64]github.Workflow
+	repositories  []string
+	repos_per_org map[string]int
+	workflows     map[string]map[int64]github.Workflow
 )
+
+func countAllReposForOrg(orga string) int {
+	for {
+		organization, _, err := client.Organizations.Get(context.Background(), orga)
+		if rl_err, ok := err.(*github.RateLimitError); ok {
+			log.Printf("Organizations ratelimited. Pausing until %s", rl_err.Rate.Reset.Time.String())
+			time.Sleep(time.Until(rl_err.Rate.Reset.Time))
+			continue
+		} else if err != nil {
+			log.Printf("Get error for %s: %s", orga, err.Error())
+			break
+		}
+		return *organization.PublicRepos + *organization.TotalPrivateRepos + *organization.OwnedPrivateRepos
+	}
+	return -1
+}
 
 func getAllReposForOrg(orga string) []string {
 	var all_repos []string
@@ -85,16 +102,24 @@ func periodicGithubFetcher() {
 
 		// Fetch repositories (if dynamic)
 		var repos_to_fetch []string
+		var current_repos_per_org = make(map[string]int)
+
 		if len(config.Github.Repositories.Value()) > 0 {
 			repos_to_fetch = config.Github.Repositories.Value()
 		} else {
 			for _, orga := range config.Github.Organizations.Value() {
-				// FIXME: This limit is being hit, every time we restart the
-				// cycle we query over and over this needs a separate cadence
-				repos_to_fetch = append(repos_to_fetch, getAllReposForOrg(orga)...)
+				c, exist := repos_per_org[orga]
+				currentCount := countAllReposForOrg(orga)
+				if !exist || c != currentCount {
+					repos_to_fetch = append(repos_to_fetch, getAllReposForOrg(orga)...)
+				} else {
+					log.Printf("Skipping getAllReposForOrg, repo count unchanged %d", c)
+				}
+				current_repos_per_org[orga] = currentCount
 			}
 		}
 		repositories = repos_to_fetch
+		repos_per_org = current_repos_per_org
 
 		// Fetch workflows
 		non_empty_repos := make([]string, 0)
