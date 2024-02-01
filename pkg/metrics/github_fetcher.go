@@ -28,11 +28,6 @@ func countAllReposForOrg(orga string) int {
 			log.Printf("Get error for %s: %s", orga, err.Error())
 			break
 		}
-		log.Printf("PublicRepos: %d", *organization.PublicRepos)
-		log.Printf("TotalPrivateRepos: %d", *organization.TotalPrivateRepos)
-		log.Printf("OwnedPrivateRepos: %d", *organization.OwnedPrivateRepos)
-		total := *organization.PublicRepos + *organization.TotalPrivateRepos + *organization.OwnedPrivateRepos
-		log.Printf("Total: %d", total)
 		return *organization.PublicRepos + *organization.TotalPrivateRepos + *organization.OwnedPrivateRepos
 	}
 	return -1
@@ -136,9 +131,6 @@ func periodicGithubFetcher() {
 		for _, repo := range repos_to_fetch {
 			r := strings.Split(repo, "/")
 			workflows_for_repo := getAllWorkflowsForRepo(r[0], r[1])
-			if len(workflows_for_repo) == 0 {
-				log.Printf("Empty repository %s", repo)
-			}
 			ww[repo] = workflows_for_repo
 			log.Printf("Fetched %d workflows for repository %s", len(ww[repo]), repo)
 		}
