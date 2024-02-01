@@ -13,7 +13,7 @@ import (
 
 var (
 	repositories  []string
-	repos_per_org map[string]int
+	repos_per_org map[string][]string
 	workflows     map[string]map[int64]github.Workflow
 )
 
@@ -102,20 +102,25 @@ func periodicGithubFetcher() {
 
 		// Fetch repositories (if dynamic)
 		var repos_to_fetch []string
-		var current_repos_per_org = make(map[string]int)
+		var current_repos_per_org = make(map[string][]string)
+		var r []string
 
 		if len(config.Github.Repositories.Value()) > 0 {
 			repos_to_fetch = config.Github.Repositories.Value()
 		} else {
 			for _, orga := range config.Github.Organizations.Value() {
-				c, exist := repos_per_org[orga]
+				repos, exist := repos_per_org[orga]
+				previousCount := len(repos)
 				currentCount := countAllReposForOrg(orga)
-				if !exist || c != currentCount {
-					repos_to_fetch = append(repos_to_fetch, getAllReposForOrg(orga)...)
+				if !exist || previousCount != currentCount {
+					log.Printf("Repo count updated from %d to %d", previousCount, currentCount)
+					r = getAllReposForOrg(orga)
 				} else {
-					log.Printf("Skipping getAllReposForOrg, repo count unchanged %d", c)
+					r = repos_per_org[orga]
+					log.Printf("Skipping getAllReposForOrg, repo count unchanged: %d", previousCount)
 				}
-				current_repos_per_org[orga] = currentCount
+				repos_to_fetch = append(repos_to_fetch, r...)
+				current_repos_per_org[orga] = r
 			}
 		}
 		repositories = repos_to_fetch
