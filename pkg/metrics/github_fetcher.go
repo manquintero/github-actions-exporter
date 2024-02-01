@@ -116,8 +116,8 @@ func periodicGithubFetcher() {
 					log.Printf("Repo count updated from %d to %d", previousCount, currentCount)
 					r = getAllReposForOrg(orga)
 				} else {
-					r = repos_per_org[orga]
 					log.Printf("Skipping getAllReposForOrg, repo count unchanged: %d", previousCount)
+					r = repos_per_org[orga]
 				}
 				repos_to_fetch = append(repos_to_fetch, r...)
 				current_repos_per_org[orga] = r
