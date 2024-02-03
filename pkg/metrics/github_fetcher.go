@@ -3,6 +3,8 @@ package metrics
 import (
 	"context"
 	"log"
+	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -82,6 +84,14 @@ func getAllWorkflowsForRepo(owner string, repo string) map[int64]github.Workflow
 			time.Sleep(time.Until(rl_err.Rate.Reset.Time))
 			continue
 		} else if err != nil {
+			if resp.StatusCode == http.StatusForbidden {
+				// check Retry-After header if it contains seconds to wait for the next retry
+				if retryAfter, e := strconv.ParseInt(resp.Header.Get("Retry-After"), 10, 32); e == nil {
+					log.Printf("ListWorkflows Retry-After %d seconds received, going for sleep", retryAfter)
+					time.Sleep(time.Duration(retryAfter) * time.Second)
+					continue
+				}
+			}
 			log.Printf("ListWorkflows error for %s: %s", repo, err.Error())
 			return res
 		}
