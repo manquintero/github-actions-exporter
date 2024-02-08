@@ -92,7 +92,7 @@ func getAllWorkflowsForRepo(owner string, repo string) map[int64]github.Workflow
 			if resp.StatusCode == http.StatusForbidden {
 				if retryAfterSeconds, e := strconv.ParseInt(resp.Header.Get("Retry-After"), 10, 32); e == nil {
 					delaySeconds := retryAfterSeconds + (60 * rand.Int63n(randomDelaySeconds))
-					log.Printf("ListWorkflows Retry-After %d seconds received, going for sleep for %d", retryAfterSeconds, delaySeconds)
+					log.Printf("ListWorkflows Retry-After %d seconds received, sleeping for %d", retryAfterSeconds, delaySeconds)
 					time.Sleep(time.Duration(delaySeconds) * time.Second)
 					continue
 				}

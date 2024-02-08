@@ -139,7 +139,7 @@ func getRecentWorkflowRuns(owner string, repo string) []*github.WorkflowRun {
 			if response.StatusCode == http.StatusForbidden {
 				if retryAfterSeconds, e := strconv.ParseInt(response.Header.Get("Retry-After"), 10, 32); e == nil {
 					delaySeconds := retryAfterSeconds + (60 * rand.Int63n(randomDelaySeconds))
-					log.Printf("ListRepositoryWorkflowRuns Retry-After %d seconds received, going for sleep for %d", retryAfterSeconds, delaySeconds)
+					log.Printf("ListRepositoryWorkflowRuns Retry-After %d seconds received, sleeping for %d", retryAfterSeconds, delaySeconds)
 					time.Sleep(time.Duration(delaySeconds) * time.Second)
 					continue
 				}
