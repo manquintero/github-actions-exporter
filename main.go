@@ -6,8 +6,8 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/faubion-hbo/github-actions-exporter/pkg/config"
-	"github.com/faubion-hbo/github-actions-exporter/pkg/server"
+	"github.com/manquintero/github-actions-exporter/pkg/config"
+	"github.com/manquintero/github-actions-exporter/pkg/server"
 )
 
 var (

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/faubion-hbo/github-actions-exporter/pkg/config"
+	"github.com/manquintero/github-actions-exporter/pkg/config"
 
 	"github.com/google/go-github/v45/github"
 	"github.com/prometheus/client_golang/prometheus"
