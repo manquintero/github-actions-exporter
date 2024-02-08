@@ -135,11 +135,11 @@ func periodicGithubFetcher() {
 				var r []string
 				var ic int
 				if !exist || previousCount != currentCount {
-					log.Printf("getAllReposForOrg count updated from %d to %d", previousCount, currentCount)
+					log.Printf("getAllReposForOrg count updated from %d (%d+%d) to %d", previousCount, len(repos), ignored_repos_count[orga], currentCount)
 					r = getAllReposForOrg(orga)
 					ic = currentCount - len(r)
 				} else {
-					log.Printf("Skipping getAllReposForOrg, repo count unchanged: %d", previousCount)
+					log.Printf("Skipping getAllReposForOrg, repo count unchanged: %d vs %d", previousCount, currentCount)
 					r = repos_per_org[orga]
 					ic = ignored_repos_count[orga]
 				}
