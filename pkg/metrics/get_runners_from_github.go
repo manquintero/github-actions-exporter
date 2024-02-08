@@ -3,6 +3,7 @@ package metrics
 import (
 	"context"
 	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -36,10 +37,10 @@ func getAllRepoRunners(owner string, repo string) []*github.Runner {
 			continue
 		} else if err != nil {
 			if rr.StatusCode == http.StatusForbidden {
-				log.Printf("DocumentationURL: %s", err.(*github.ErrorResponse).DocumentationURL)
 				if retryAfterSeconds, e := strconv.ParseInt(rr.Header.Get("Retry-After"), 10, 32); e == nil {
-					log.Printf("ListRunners Retry-After %d seconds received, going for sleep", retryAfterSeconds)
-					time.Sleep(time.Duration(retryAfterSeconds) * time.Second)
+					delaySeconds := retryAfterSeconds + (60 * rand.Int63n(randomDelaySeconds))
+					log.Printf("ListRunners Retry-After %d seconds received, going for sleep for %d", retryAfterSeconds, delaySeconds)
+					time.Sleep(time.Duration(delaySeconds) * time.Second)
 					continue
 				}
 			}

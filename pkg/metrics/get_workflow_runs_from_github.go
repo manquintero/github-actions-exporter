@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -136,10 +137,10 @@ func getRecentWorkflowRuns(owner string, repo string) []*github.WorkflowRun {
 			continue
 		} else if err != nil {
 			if response.StatusCode == http.StatusForbidden {
-				log.Printf("DocumentationURL: %s", err.(*github.ErrorResponse).DocumentationURL)
 				if retryAfterSeconds, e := strconv.ParseInt(response.Header.Get("Retry-After"), 10, 32); e == nil {
-					log.Printf("ListRepositoryWorkflowRuns Retry-After %d seconds received, going for sleep", retryAfterSeconds)
-					time.Sleep(time.Duration(retryAfterSeconds) * time.Second)
+					delaySeconds := retryAfterSeconds + (60 * rand.Int63n(randomDelaySeconds))
+					log.Printf("ListRepositoryWorkflowRuns Retry-After %d seconds received, going for sleep for %d", retryAfterSeconds, delaySeconds)
+					time.Sleep(time.Duration(delaySeconds) * time.Second)
 					continue
 				}
 			}
