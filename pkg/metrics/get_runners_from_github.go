@@ -37,9 +37,9 @@ func getAllRepoRunners(owner string, repo string) []*github.Runner {
 		} else if err != nil {
 			if rr.StatusCode == http.StatusForbidden {
 				// check Retry-After header if it contains seconds to wait for the next retry
-				if retryAfter, e := strconv.ParseInt(rr.Header.Get("Retry-After"), 10, 32); e == nil {
-					log.Printf("ListRunners Retry-After %d seconds received, going for sleep", retryAfter)
-					time.Sleep(time.Duration(retryAfter) * time.Second)
+				if retryAfterSeconds, e := strconv.ParseInt(rr.Header.Get("Retry-After"), 10, 32); e == nil {
+					log.Printf("ListRunners Retry-After %d seconds received, going for sleep", retryAfterSeconds)
+					time.Sleep(time.Duration(retryAfterSeconds) * time.Second)
 					continue
 				}
 			}
