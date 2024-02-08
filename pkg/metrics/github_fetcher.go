@@ -15,9 +15,10 @@ import (
 )
 
 var (
-	repositories  []string
-	repos_per_org map[string][]string
-	workflows     map[string]map[int64]github.Workflow
+	repositories        []string
+	repos_per_org       map[string][]string
+	ignored_repos_count map[string]int
+	workflows           map[string]map[int64]github.Workflow
 )
 
 const (
@@ -118,18 +119,24 @@ func periodicGithubFetcher() {
 		// Fetch repositories (if dynamic)
 		var repos_to_fetch []string
 		var current_repos_per_org = make(map[string][]string)
-		var r []string
+		var current_ignored_repos = make(map[string]int)
 
 		if len(config.Github.Repositories.Value()) > 0 {
 			repos_to_fetch = config.Github.Repositories.Value()
 		} else {
 			for _, orga := range config.Github.Organizations.Value() {
-				repos, exist := repos_per_org[orga]
-				previousCount := len(repos)
 				currentCount := countAllReposForOrg(orga)
+
+				// Retrieve the count from the local cache and compensate for the
+				// repositories discarded by getAllReposForOrg
+				repos, exist := repos_per_org[orga]
+				previousCount := len(repos) + ignored_repos_count[orga]
+
+				var r []string
 				if !exist || previousCount != currentCount {
 					log.Printf("getAllReposForOrg count updated from %d to %d", previousCount, currentCount)
 					r = getAllReposForOrg(orga)
+					current_ignored_repos[orga] = currentCount - len(r)
 				} else {
 					log.Printf("Skipping getAllReposForOrg, repo count unchanged: %d", previousCount)
 					r = repos_per_org[orga]
@@ -138,8 +145,11 @@ func periodicGithubFetcher() {
 				current_repos_per_org[orga] = r
 			}
 		}
+		// shared resource
 		repositories = repos_to_fetch
+		// function caches
 		repos_per_org = current_repos_per_org
+		ignored_repos_count = current_ignored_repos
 
 		// Fetch workflows
 		non_empty_repos := make([]string, 0)
