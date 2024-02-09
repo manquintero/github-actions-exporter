@@ -11,14 +11,14 @@ import (
 	"github.com/faubion-hbo/github-actions-exporter/pkg/config"
 )
 
-type OrgRepos struct {
+type orgRepos struct {
 	Active, Inactive []string
 	Count            int
 }
 
 var (
 	repositories  []string
-	repos_per_org map[string]OrgRepos
+	repos_per_org map[string]orgRepos
 	workflows     map[string]map[int64]github.Workflow
 )
 
@@ -38,7 +38,7 @@ func countAllReposForOrg(orga string) int {
 	return -1
 }
 
-func getAllReposForOrg(orga string) OrgRepos {
+func getAllReposForOrg(orga string) orgRepos {
 	var active_repos, inactive_repos []string
 
 	opt := &github.RepositoryListByOrgOptions{
@@ -71,7 +71,7 @@ func getAllReposForOrg(orga string) OrgRepos {
 		opt.ListOptions.Page = resp.NextPage
 	}
 
-	return OrgRepos{
+	return orgRepos{
 		Active:   active_repos,
 		Inactive: inactive_repos,
 		Count:    len(active_repos) + len(inactive_repos),
@@ -112,13 +112,13 @@ func periodicGithubFetcher() {
 	for {
 		// Fetch repositories (if dynamic)
 		var repos_to_fetch []string
-		var current_repos_per_org = make(map[string]OrgRepos)
+		var current_repos_per_org = make(map[string]orgRepos)
 
 		if len(config.Github.Repositories.Value()) > 0 {
 			repos_to_fetch = config.Github.Repositories.Value()
 		} else {
 			for _, orga := range config.Github.Organizations.Value() {
-				var r OrgRepos
+				var r orgRepos
 				prevRepos, exists := repos_per_org[orga]
 				if !exists {
 					log.Printf("Cache miss for repo count of org \"%s\", so calling getAllReposForOrg", orga)
