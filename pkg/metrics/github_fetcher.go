@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -119,35 +118,32 @@ func periodicGithubFetcher() {
 			repos_to_fetch = config.Github.Repositories.Value()
 		} else {
 			for _, orga := range config.Github.Organizations.Value() {
-				currentCount := countAllReposForOrg(orga)
-
-				prevRepos, exist := repos_per_org[orga]
-
 				var r OrgRepos
-				if !exist || prevRepos.Count != currentCount {
-					var msg string
-					if exist {
-						msg = fmt.Sprintf("countAllReposForOrg(%s) count updated from %d (previous) to %d (now)", orga, prevRepos.Count, currentCount)
-					} else {
-						msg = fmt.Sprintf("countAllReposForOrg(%s) count is %d", orga, currentCount)
-					}
-					log.Printf("%s; calling getAllReposForOrg...", msg)
-
+				prevRepos, exists := repos_per_org[orga]
+				if !exists {
+					log.Printf("Cache miss for repo count of org \"%s\", so calling getAllReposForOrg", orga)
 					r = getAllReposForOrg(orga)
 				} else {
-					// TODO even if count is unchanged, there could've been changes; ensure condition requests are working
-					log.Printf("Skipping getAllReposForOrg, repo count unchanged: %d", prevRepos.Count)
-
-					r = repos_per_org[orga]
+					currentCount := countAllReposForOrg(orga)
+					if prevRepos.Count != currentCount {
+						log.Printf("countAllReposForOrg of org \"%s\" shows count went from %d to %d, so calling getAllReposForOrg", orga, prevRepos.Count, currentCount)
+						r = getAllReposForOrg(orga)
+					} else {
+						// TODO even if the number of repos is unchanged, there could have been changes to the repos, e.g.
+						// if a repo was deleted and another made between metric runs; therefore, we need to look into how
+						// to detect when the response from countAllReposForOrg has the same Etag between requests
+						log.Printf("Skipping getAllReposForOrg because repo count of org \"%s\" was unchanged (%d)", orga, prevRepos.Count)
+						r = repos_per_org[orga]
+					}
 				}
-				repos_to_fetch = append(repos_to_fetch, r.Active...)
-
 				current_repos_per_org[orga] = r
+
+				repos_to_fetch = append(repos_to_fetch, r.Active...)
 			}
 		}
 		// shared resource
 		repositories = repos_to_fetch
-		// function caches
+		// function cache
 		repos_per_org = current_repos_per_org
 
 		// Fetch workflows
