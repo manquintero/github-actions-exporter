@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -11,11 +12,15 @@ import (
 	"github.com/faubion-hbo/github-actions-exporter/pkg/config"
 )
 
+type OrgRepos struct {
+	Active, Inactive []string
+	Count            int
+}
+
 var (
-	repositories        []string
-	repos_per_org       map[string][]string
-	ignored_repos_count map[string]int
-	workflows           map[string]map[int64]github.Workflow
+	repositories  []string
+	repos_per_org map[string]OrgRepos
+	workflows     map[string]map[int64]github.Workflow
 )
 
 func countAllReposForOrg(orga string) int {
@@ -34,8 +39,8 @@ func countAllReposForOrg(orga string) int {
 	return -1
 }
 
-func getAllReposForOrg(orga string) []string {
-	var all_repos []string
+func getAllReposForOrg(orga string) OrgRepos {
+	var active_repos, inactive_repos []string
 
 	opt := &github.RepositoryListByOrgOptions{
 		ListOptions: github.ListOptions{
@@ -56,16 +61,22 @@ func getAllReposForOrg(orga string) []string {
 		for _, repo := range repos_page {
 			if *repo.Disabled || *repo.Archived {
 				log.Printf("Skipping Archived or Disabled repo %s", *repo.FullName)
+				inactive_repos = append(inactive_repos, *repo.FullName)
 				continue
 			}
-			all_repos = append(all_repos, *repo.FullName)
+			active_repos = append(active_repos, *repo.FullName)
 		}
 		if resp.NextPage == 0 {
 			break
 		}
 		opt.ListOptions.Page = resp.NextPage
 	}
-	return all_repos
+
+	return OrgRepos{
+		Active:   active_repos,
+		Inactive: inactive_repos,
+		Count:    len(active_repos) + len(inactive_repos),
+	}
 }
 
 func getAllWorkflowsForRepo(owner string, repo string) map[int64]github.Workflow {
@@ -100,11 +111,9 @@ func getAllWorkflowsForRepo(owner string, repo string) map[int64]github.Workflow
 
 func periodicGithubFetcher() {
 	for {
-
 		// Fetch repositories (if dynamic)
 		var repos_to_fetch []string
-		var current_repos_per_org = make(map[string][]string)
-		var current_ignored_repos = make(map[string]int)
+		var current_repos_per_org = make(map[string]OrgRepos)
 
 		if len(config.Github.Repositories.Value()) > 0 {
 			repos_to_fetch = config.Github.Repositories.Value()
@@ -112,32 +121,34 @@ func periodicGithubFetcher() {
 			for _, orga := range config.Github.Organizations.Value() {
 				currentCount := countAllReposForOrg(orga)
 
-				// Retrieve the count from the local cache and compensate for the
-				// repositories discarded by getAllReposForOrg
-				repos, exist := repos_per_org[orga]
-				previousCount := len(repos) + ignored_repos_count[orga]
+				prevRepos, exist := repos_per_org[orga]
 
-				var r []string
-				var ic int
-				if !exist || previousCount != currentCount {
-					log.Printf("getAllReposForOrg count updated from %d to %d", previousCount, currentCount)
+				var r OrgRepos
+				if !exist || prevRepos.Count != currentCount {
+					var msg string
+					if exist {
+						msg = fmt.Sprintf("countAllReposForOrg(%s) count updated from %d (previous) to %d (now)", orga, prevRepos.Count, currentCount)
+					} else {
+						msg = fmt.Sprintf("countAllReposForOrg(%s) count is %d", orga, currentCount)
+					}
+					log.Printf("%s; calling getAllReposForOrg...", msg)
+
 					r = getAllReposForOrg(orga)
-					ic = currentCount - len(r)
 				} else {
-					log.Printf("Skipping getAllReposForOrg, repo count unchanged: %d", previousCount)
+					// TODO even if count is unchanged, there could've been changes; ensure condition requests are working
+					log.Printf("Skipping getAllReposForOrg, repo count unchanged: %d", prevRepos.Count)
+
 					r = repos_per_org[orga]
-					ic = ignored_repos_count[orga]
 				}
-				repos_to_fetch = append(repos_to_fetch, r...)
+				repos_to_fetch = append(repos_to_fetch, r.Active...)
+
 				current_repos_per_org[orga] = r
-				current_ignored_repos[orga] = ic
 			}
 		}
 		// shared resource
 		repositories = repos_to_fetch
 		// function caches
 		repos_per_org = current_repos_per_org
-		ignored_repos_count = current_ignored_repos
 
 		// Fetch workflows
 		non_empty_repos := make([]string, 0)
