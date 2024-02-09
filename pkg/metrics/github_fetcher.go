@@ -3,6 +3,9 @@ package metrics
 import (
 	"context"
 	"log"
+	"math/rand"
+	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,6 +18,10 @@ var (
 	repositories  []string
 	repos_per_org map[string]int
 	workflows     map[string]map[int64]github.Workflow
+)
+
+const (
+	randomDelaySeconds int64 = 5
 )
 
 func countAllReposForOrg(orga string) int {
@@ -82,6 +89,14 @@ func getAllWorkflowsForRepo(owner string, repo string) map[int64]github.Workflow
 			time.Sleep(time.Until(rl_err.Rate.Reset.Time))
 			continue
 		} else if err != nil {
+			if resp.StatusCode == http.StatusForbidden {
+				if retryAfterSeconds, e := strconv.ParseInt(resp.Header.Get("Retry-After"), 10, 32); e == nil {
+					delaySeconds := retryAfterSeconds + (60 * rand.Int63n(randomDelaySeconds))
+					log.Printf("ListWorkflows Retry-After %d seconds received, sleeping for %d", retryAfterSeconds, delaySeconds)
+					time.Sleep(time.Duration(delaySeconds) * time.Second)
+					continue
+				}
+			}
 			log.Printf("ListWorkflows error for %s: %s", repo, err.Error())
 			return res
 		}

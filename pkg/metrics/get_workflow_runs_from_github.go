@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"math/rand"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -128,21 +130,29 @@ func getRecentWorkflowRuns(owner string, repo string) []*github.WorkflowRun {
 
 	var runs []*github.WorkflowRun
 	for {
-		resp, rr, err := client.Actions.ListRepositoryWorkflowRuns(context.Background(), owner, repo, opt)
+		workflow_runs, response, err := client.Actions.ListRepositoryWorkflowRuns(context.Background(), owner, repo, opt)
 		if rl_err, ok := err.(*github.RateLimitError); ok {
 			log.Printf("ListRepositoryWorkflowRuns ratelimited. Pausing until %s", rl_err.Rate.Reset.Time.String())
 			time.Sleep(time.Until(rl_err.Rate.Reset.Time))
 			continue
 		} else if err != nil {
-			log.Printf("ListRepositoryWorkflowRuns error for repo %s/%s: %s", owner, repo, err.Error())
+			if response.StatusCode == http.StatusForbidden {
+				if retryAfterSeconds, e := strconv.ParseInt(response.Header.Get("Retry-After"), 10, 32); e == nil {
+					delaySeconds := retryAfterSeconds + (60 * rand.Int63n(randomDelaySeconds))
+					log.Printf("ListRepositoryWorkflowRuns Retry-After %d seconds received, sleeping for %d", retryAfterSeconds, delaySeconds)
+					time.Sleep(time.Duration(delaySeconds) * time.Second)
+					continue
+				}
+			}
+			log.Printf("ListRepositoryWorkflowRuns error for repo %s/%s: %s [%d]", owner, repo, err, response.StatusCode)
 			return runs
 		}
 
-		runs = append(runs, resp.WorkflowRuns...)
-		if rr.NextPage == 0 {
+		runs = append(runs, workflow_runs.WorkflowRuns...)
+		if response.NextPage == 0 {
 			break
 		}
-		opt.Page = rr.NextPage
+		opt.Page = response.NextPage
 	}
 
 	return runs

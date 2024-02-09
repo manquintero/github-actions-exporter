@@ -3,6 +3,8 @@ package metrics
 import (
 	"context"
 	"log"
+	"math/rand"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -33,6 +35,14 @@ func getAllEnterpriseRunners() []*github.Runner {
 			time.Sleep(time.Until(rl_err.Rate.Reset.Time))
 			continue
 		} else if err != nil {
+			if rr.StatusCode == http.StatusForbidden {
+				if retryAfterSeconds, e := strconv.ParseInt(rr.Header.Get("Retry-After"), 10, 32); e == nil {
+					delaySeconds := retryAfterSeconds + (60 * rand.Int63n(randomDelaySeconds))
+					log.Printf("ListRunners Retry-After %d seconds received, sleeping for %d", retryAfterSeconds, delaySeconds)
+					time.Sleep(time.Duration(delaySeconds) * time.Second)
+					continue
+				}
+			}
 			log.Printf("ListRunners error for enterprise %s: %s", config.EnterpriseName, err.Error())
 			return nil
 		}
