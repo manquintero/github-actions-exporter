@@ -14,9 +14,14 @@ import (
 	"github.com/faubion-hbo/github-actions-exporter/pkg/config"
 )
 
+type orgRepos struct {
+	Active, Inactive, Forks []string
+	Count                   int
+}
+
 var (
 	repositories  []string
-	repos_per_org map[string]int
+	repos_per_org map[string]orgRepos
 	workflows     map[string]map[int64]github.Workflow
 )
 
@@ -35,13 +40,16 @@ func countAllReposForOrg(orga string) int {
 			log.Printf("Get error for %s: %s", orga, err.Error())
 			break
 		}
-		return *organization.PublicRepos + *organization.TotalPrivateRepos + *organization.OwnedPrivateRepos
+		log.Printf("*organization.PublicRepos: %d", *organization.PublicRepos)
+		log.Printf("*organization.TotalPrivateRepos: %d", *organization.TotalPrivateRepos)
+		log.Printf("*organization.OwnedPrivateRepos: %d", *organization.OwnedPrivateRepos)
+		return *organization.PublicRepos + *organization.OwnedPrivateRepos
 	}
 	return -1
 }
 
-func getAllReposForOrg(orga string) []string {
-	var all_repos []string
+func getAllReposForOrg(orga string) orgRepos {
+	var active_repos, inactive_repos, forks []string
 
 	opt := &github.RepositoryListByOrgOptions{
 		ListOptions: github.ListOptions{
@@ -60,18 +68,34 @@ func getAllReposForOrg(orga string) []string {
 			break
 		}
 		for _, repo := range repos_page {
-			if *repo.Disabled || *repo.Archived {
-				log.Printf("Skipping Archived or Disabled repo %s", *repo.FullName)
+			if *repo.Fork {
+				log.Printf("Partitioning out fork repo %s", *repo.FullName)
+				forks = append(forks, *repo.FullName)
 				continue
 			}
-			all_repos = append(all_repos, *repo.FullName)
+
+			if *repo.Disabled || *repo.Archived {
+				log.Printf("Skipping Archived or Disabled repo %s", *repo.FullName)
+				inactive_repos = append(inactive_repos, *repo.FullName)
+				continue
+			}
+			active_repos = append(active_repos, *repo.FullName)
 		}
 		if resp.NextPage == 0 {
 			break
 		}
 		opt.ListOptions.Page = resp.NextPage
 	}
-	return all_repos
+
+	log.Printf(".Active size: %d", len(active_repos))
+	log.Printf(".Inactive size: %d", len(inactive_repos))
+	log.Printf(".Forks: %v", forks)
+	return orgRepos{
+		Active:   active_repos,
+		Inactive: inactive_repos,
+		Forks:    forks,
+		Count:    len(active_repos) + len(inactive_repos),
+	}
 }
 
 func getAllWorkflowsForRepo(owner string, repo string) map[int64]github.Workflow {
@@ -114,26 +138,40 @@ func getAllWorkflowsForRepo(owner string, repo string) map[int64]github.Workflow
 
 func periodicGithubFetcher() {
 	for {
-
 		// Fetch repositories (if dynamic)
 		var repos_to_fetch []string
-		var current_repos_per_org = make(map[string]int)
+		var current_repos_per_org = make(map[string]orgRepos)
 
 		if len(config.Github.Repositories.Value()) > 0 {
 			repos_to_fetch = config.Github.Repositories.Value()
 		} else {
 			for _, orga := range config.Github.Organizations.Value() {
-				c, exist := repos_per_org[orga]
-				currentCount := countAllReposForOrg(orga)
-				if !exist || c != currentCount {
-					repos_to_fetch = append(repos_to_fetch, getAllReposForOrg(orga)...)
+				var r orgRepos
+				prevRepos, exists := repos_per_org[orga]
+				if !exists {
+					log.Printf("Cache miss for repo count of org \"%s\", so calling getAllReposForOrg", orga)
+					r = getAllReposForOrg(orga)
 				} else {
-					log.Printf("Skipping getAllReposForOrg, repo count unchanged %d", c)
+					currentCount := countAllReposForOrg(orga)
+					if prevRepos.Count != currentCount {
+						log.Printf("countAllReposForOrg of org \"%s\" shows count went from %d to %d, so calling getAllReposForOrg", orga, prevRepos.Count, currentCount)
+						r = getAllReposForOrg(orga)
+					} else {
+						// TODO even if the number of repos is unchanged, there could have been changes to the repos, e.g.
+						// if a repo was deleted and another made between metric runs; therefore, we need to look into how
+						// to detect when the response from countAllReposForOrg has the same Etag between requests
+						log.Printf("Skipping getAllReposForOrg because repo count of org \"%s\" was unchanged (%d)", orga, prevRepos.Count)
+						r = repos_per_org[orga]
+					}
 				}
-				current_repos_per_org[orga] = currentCount
+				current_repos_per_org[orga] = r
+
+				repos_to_fetch = append(repos_to_fetch, r.Active...)
 			}
 		}
+		// shared resource
 		repositories = repos_to_fetch
+		// function cache
 		repos_per_org = current_repos_per_org
 
 		// Fetch workflows
