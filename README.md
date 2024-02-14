@@ -1,20 +1,26 @@
-# Below is all unvalidated by current repo owner
+> [!WARNING]  
+> Below information has not been validated by me
 
 ___
+
+## Change of organization
+The project was migrated to another organization because it was no longer maintained.
+In the coming weeks, changes will be made on various points (code and container image) and also an update of all the libraries.
+If there are feature requests, you can make them in the issues. For a better understanding of the requested features, having a detailed description or example will be greatly appreciated.
 
 # github-actions-exporter
 github-actions-exporter for prometheus
 
-<!--
-![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/spendeskplatform/github-actions-exporter)
-![Docker Pulls](https://img.shields.io/docker/pulls/spendeskplatform/github-actions-exporter)
--->
+![Release pipeline](https://github.com/Labbs/github-actions-exporter/actions/workflows/release.yml/badge.svg)
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/faubion-hbo/github-actions-exporter)](https://goreportcard.com/report/github.com/faubion-hbo/github-actions-exporter)
+Container image : https://github.com/Labbs/github-actions-exporter/pkgs/container/github-actions-exporter
 
-<!--
-Container image : https://hub.docker.com/repository/docker/spendeskplatform/github-actions-exporter
--->
+Helm Chart :
+```
+ helm chart repo: https://labbs.github.io/helm-charts/
+ chart: github-actions-exporter
+ version: "0.1.4"
+```
 
 ## Information
 If you want to monitor a public repository, you must put the public_repo option in the repo scope of your github token or Github App Authentication.
