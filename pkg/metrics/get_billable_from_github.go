@@ -38,7 +38,7 @@ func getBillableFromGithub() {
 						log.Printf("GetWorkflowUsageByID ratelimited. Pausing until %s", rl_err.Rate.Reset.Time.String())
 						time.Sleep(time.Until(rl_err.Rate.Reset.Time))
 						continue
-					} else if err != nil {
+					} else if err != nil && resp != nil {
 						if resp.StatusCode == http.StatusForbidden {
 							if retryAfterSeconds, e := strconv.ParseInt(resp.Header.Get("Retry-After"), 10, 32); e == nil {
 								delaySeconds := retryAfterSeconds + (60 * rand.Int63n(randomDelaySeconds))
