@@ -145,7 +145,7 @@ func getRecentWorkflowRuns(owner string, repo string) []*github.WorkflowRun {
 				}
 			}
 			log.Printf("ListRepositoryWorkflowRuns error for repo %s/%s: %s", owner, repo, err)
-			break
+			return runs
 		}
 
 		runs = append(runs, workflow_runs.WorkflowRuns...)
